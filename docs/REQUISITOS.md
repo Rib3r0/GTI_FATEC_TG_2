@@ -19,3 +19,19 @@
 | **RF14** | Relatórios                 | O sistema deve permitir visualizar relatórios sobre estoque, vendas, desperdícios e previsões de demanda.                 |
 | **RF15** | Usuários e permissões      | O sistema deve permitir cadastrar usuários e definir diferentes níveis de acesso.                                         |
 
+## Requisitos N/  Funcionais
+| ID        | Requisito                  | Descrição                                                                                                                                               |
+| --------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **RNF01** | Usabilidade                | O sistema deve possuir uma interface simples e intuitiva, permitindo que funcionários utilizem suas funções sem conhecimentos técnicos avançados.       |
+| **RNF02** | Desempenho                 | O sistema deve apresentar as informações de estoque e previsões de forma rápida, com baixo tempo de resposta.                                           |
+| **RNF03** | Segurança                  | O sistema deve garantir a segurança dos dados armazenados.                                                                                              |
+| **RNF04** | Autenticação               | O sistema deve utilizar autenticação para controlar o acesso dos usuários.                                                                              |
+| **RNF05** | Backup                     | O sistema deve realizar cópias de segurança periódicas dos dados.                                                                                       |
+| **RNF06** | Disponibilidade            | O sistema deve manter a disponibilidade dos dados para consulta durante o horário de funcionamento do restaurante.                                      |
+| **RNF07** | Escalabilidade             | O sistema deve ser capaz de lidar com o aumento da quantidade de produtos, vendas e registros sem perda significativa de desempenho.                    |
+| **RNF08** | Qualidade dos dados        | Os dados utilizados pelo modelo de IA devem possuir qualidade e consistência suficientes para gerar previsões confiáveis.                               |
+| **RNF09** | Manutenibilidade do modelo | O sistema deve permitir a atualização ou substituição do modelo de IA sem a necessidade de alterar completamente o sistema.                             |
+| **RNF10** | Registro de eventos        | O sistema deve registrar erros e eventos importantes para facilitar a manutenção e identificação de problemas.                                          |
+| **RNF11** | Integridade dos dados      | O sistema deve preservar a integridade dos dados, evitando registros duplicados ou alterações indevidas.                                                |
+| **RNF12** | Compreensão das previsões  | O sistema deve apresentar as previsões de IA de forma compreensível para o usuário, evitando depender de conhecimentos técnicos sobre Machine Learning. |
+
