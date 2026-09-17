@@ -5,7 +5,7 @@
 | -------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | **RF01** | Cadastro de produtos       | O sistema deve permitir cadastrar, editar e excluir produtos do estoque.                                                  |
 | **RF02** | Informações dos produtos   | O sistema deve registrar nome, categoria, quantidade, unidade de medida, validade e estoque mínimo.                       |
-| **RF03** | Movimentação de estoque    | O sistema deve registrar entradas e saídas de produtos do estoque.                                                        |
+| **RF03** | Movimentação de estoque    | O sistema deve registrar entradas e saídas de produtos do estoque usando modelo FIFA.                                     |
 | **RF04** | Atualização automática     | O sistema deve atualizar automaticamente a quantidade disponível após cada entrada ou saída.                              |
 | **RF05** | Consulta de estoque        | O sistema deve permitir consultar o estoque atual dos produtos.                                                           |
 | **RF06** | Alertas de estoque mínimo  | O sistema deve emitir alertas quando a quantidade de um produto estiver abaixo do estoque mínimo.                         |

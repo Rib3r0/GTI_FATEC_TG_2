@@ -1,0 +1,4 @@
+venda_id,data,produto_id,qtd_vendida,dia_semana,eh_feriado,clima,temp_media_c,evento_regiao
+V501,2026-09-11,101,18.50,Sexta,0,Ensolarado,27.5,1
+V502,2026-09-12,102,8.00,Sábado,0,Chuvoso,19.0,0
+V503,2026-09-18,101,22.00,Sexta,1,Chuvoso,18.0,1

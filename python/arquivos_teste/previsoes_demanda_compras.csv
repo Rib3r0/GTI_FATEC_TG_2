@@ -1,0 +1,4 @@
+previsao_id,produto_id,data_prevista,demanda_prevista,estoque_projetado,sugestao_compra,gerado_em
+P201,101,2026-09-25,24.50 kg,12.50 kg,27.00 kg,2026-09-19 06:00
+P202,102,2026-09-25,10.00 kg,6.70 kg,8.30 kg,2026-09-19 06:00
+P203,104,2026-09-25,15.00 Un,0.00 Un (Vencido),25.00 Un,2026-09-19 06:00
