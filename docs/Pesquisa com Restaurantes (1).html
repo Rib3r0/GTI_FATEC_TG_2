@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pesquisa com Restaurantes</title>
+<style>
+:root{
+  --bg:#efece4; --card:#f8f6f1; --ink:#22241f; --sub:#6f6b60;
+  --navy:#232c3d; --khaki:#c9b696; --grey:#9aa1a8; --frame:#7c4fae; --line:#e2ddd0;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){--bg:#1a1810;--card:#232019;--ink:#efece4;--sub:#a89f8f;--line:#3a3527;}
+}
+:root[data-theme="dark"]{--bg:#1a1810;--card:#232019;--ink:#efece4;--sub:#a89f8f;--line:#3a3527;}
+*{box-sizing:border-box;}
+body{margin:0;background:#d8d2c2;font-family:'Helvetica Neue',Arial,sans-serif;color:var(--ink);}
+.frame{max-width:1100px;margin:16px auto;background:var(--bg);border:2px solid var(--frame);border-radius:18px;padding:26px;position:relative;}
+.frame:before,.frame:after{content:"";position:absolute;width:14px;height:14px;background:var(--frame);border-radius:50%;top:50%;transform:translateY(-50%);}
+.frame:before{left:-9px;}.frame:after{right:-9px;}
+h1{font-size:clamp(26px,4vw,40px);font-weight:800;letter-spacing:-0.5px;margin:0 0 8px;line-height:1.05;text-transform:uppercase;}
+.subtitle{font-size:12.5px;color:var(--sub);max-width:320px;line-height:1.5;}
+.top{display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;align-items:flex-start;margin-bottom:16px;}
+.kpis{display:flex;gap:10px;flex-wrap:wrap;flex:1;justify-content:flex-end;}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 12px;text-align:center;min-width:110px;flex:1;max-width:150px;}
+.kpi .icon{font-size:15px;margin-bottom:4px;}
+.kpi .n{font-size:22px;font-weight:800;}
+.kpi .l{font-size:9.5px;color:var(--sub);text-transform:uppercase;letter-spacing:.3px;margin-top:2px;line-height:1.3;}
+.grid{display:grid;grid-template-columns:1fr 1fr 1.1fr;gap:14px;margin-bottom:14px;}
+@media(max-width:900px){.grid{grid-template-columns:1fr;}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;}
+h2{font-size:11px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;margin:0 0 14px;display:flex;align-items:center;gap:6px;}
+h2:before{content:"";width:7px;height:7px;background:var(--navy);border-radius:50%;flex-shrink:0;}
+h3{font-size:10.5px;font-weight:700;color:var(--sub);text-transform:uppercase;margin:14px 0 8px;}
+.donut-row{display:flex;align-items:center;gap:14px;}
+.donut{width:84px;height:84px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;position:relative;}
+.donut .hole{width:44px;height:44px;background:var(--card);border-radius:50%;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.1;}
+.legend{font-size:11px;flex:1;}
+.legend .row{display:flex;align-items:center;gap:6px;margin-bottom:5px;}
+.legend .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.legend .txt{flex:1;}
+.legend .pct{font-weight:700;}
+.bar-row{margin-bottom:9px;}
+.bar-label{font-size:11px;display:flex;justify-content:space-between;margin-bottom:3px;}
+.bar-label b{font-weight:700;}
+.bar-track{background:var(--bg);border-radius:5px;height:11px;overflow:hidden;}
+.bar-fill{height:100%;background:var(--navy);border-radius:5px 0 0 5px;}
+.icon-list .item{display:flex;align-items:center;gap:9px;font-size:11.5px;margin-bottom:10px;}
+.icon-list .ico{width:24px;height:24px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;}
+.icon-list .txt{flex:1;}
+.icon-list .pct{font-weight:700;font-size:11.5px;white-space:nowrap;}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.footer-row{display:flex;justify-content:space-between;align-items:center;margin-top:6px;font-size:10px;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;}
+.pagenum{width:22px;height:22px;border:1px solid var(--sub);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;}
+</style>
+</head>
+<body>
+<div class="frame">
+
+  <div class="top">
+    <div>
+      <h1>Pesquisa com<br>Restaurantes</h1>
+      <div class="subtitle">Síntese das respostas de 7 restaurantes de pequeno porte sobre gestão de estoque, demanda, operação e uso de tecnologia.</div>
+    </div>
+    <div class="kpis">
+      <div class="kpi"><div class="icon">🍽️</div><div class="n">7</div><div class="l">restaurantes participantes</div></div>
+      <div class="kpi"><div class="icon">🏠</div><div class="n">6</div><div class="l">restaurantes próprios (86%)</div></div>
+      <div class="kpi"><div class="icon">📦</div><div class="n">1</div><div class="l">dark kitchen / delivery exclusivo</div></div>
+      <div class="kpi"><div class="icon">👥</div><div class="n">1</div><div class="l">restaurante com mais de 30 funcionários</div></div>
+      <div class="kpi"><div class="icon">👤</div><div class="n">5</div><div class="l">até 5 funcionários (71%)</div></div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Perfil dos participantes</h2>
+      <h3>Modelo do restaurante</h3>
+      <div class="donut-row">
+        <div class="donut" style="background:conic-gradient(var(--navy) 0% 86%, var(--khaki) 86% 100%)"><div class="hole">86%</div></div>
+        <div class="legend">
+          <div class="row"><span class="dot" style="background:var(--navy)"></span><span class="txt">Restaurante próprio (independente)</span><span class="pct">86%</span></div>
+          <div class="row"><span class="dot" style="background:var(--khaki)"></span><span class="txt">Dark kitchen / delivery exclusivo</span><span class="pct">14%</span></div>
+        </div>
+      </div>
+      <h3>Porte da equipe</h3>
+      <div class="bar-row"><div class="bar-label"><span>Até 5</span><b>5 (71%)</b></div><div class="bar-track"><div class="bar-fill" style="width:71%"></div></div></div>
+      <div class="bar-row"><div class="bar-label"><span>6 a 15</span><b>1 (14%)</b></div><div class="bar-track"><div class="bar-fill" style="width:14%"></div></div></div>
+      <div class="bar-row"><div class="bar-label"><span>Mais de 30</span><b>1 (14%)</b></div><div class="bar-track"><div class="bar-fill" style="width:14%"></div></div></div>
+    </div>
+
+    <div class="card">
+      <h2>Maiores desafios com estoque</h2>
+      <div class="bar-row"><div class="bar-label"><span>Não tenho dificuldades relevantes</span><b>43%</b></div><div class="bar-track"><div class="bar-fill" style="width:43%"></div></div></div>
+      <div class="bar-row"><div class="bar-label"><span>Sem controle estruturado de estoque</span><b>29%</b></div><div class="bar-track"><div class="bar-fill" style="width:29%"></div></div></div>
+      <div class="bar-row"><div class="bar-label"><span>Falta de insumos em dias de pico</span><b>14%</b></div><div class="bar-track"><div class="bar-fill" style="width:14%"></div></div></div>
+      <div class="bar-row"><div class="bar-label"><span>Falta de espaço físico</span><b>14%</b></div><div class="bar-track"><div class="bar-fill" style="width:14%"></div></div></div>
+    </div>
+
+    <div class="card">
+      <h2>Como os restaurantes estimam a demanda?</h2>
+      <div class="icon-list">
+        <div class="item"><div class="ico">💡</div><div class="txt">Experiência e intuição do gestor</div><div class="pct">43% (3)</div></div>
+        <div class="item"><div class="ico">🧾</div><div class="txt">Não faço previsão, produzo conforme o pedido</div><div class="pct">43% (3)</div></div>
+        <div class="item"><div class="ico">📅</div><div class="txt">Reserva antecipada da refeição</div><div class="pct">14% (1)</div></div>
+        <div class="item"><div class="ico">📊</div><div class="txt">Faz previsão formalmente</div><div class="pct">0% (0)</div></div>
+      </div>
+      <div class="donut-row" style="justify-content:center;margin-top:6px;">
+        <div class="donut" style="background:conic-gradient(var(--navy) 0% 100%)"><div class="hole">100%<br>responderam</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid" style="grid-template-columns:1.3fr 1fr 1.1fr;">
+    <div class="card">
+      <h2>Clareza sobre margem de lucro</h2>
+      <div class="two">
+        <div>
+          <h3 style="margin-top:0">Clareza sobre a margem por prato</h3>
+          <div class="donut-row">
+            <div class="donut" style="width:64px;height:64px;background:conic-gradient(var(--navy) 0% 43%, var(--khaki) 43% 100%)"><div class="hole" style="width:34px;height:34px;font-size:10px;">43%</div></div>
+            <div class="legend">
+              <div class="row"><span class="dot" style="background:var(--navy)"></span><span class="txt">Analisa regularmente</span></div>
+              <div class="row"><span class="dot" style="background:var(--khaki)"></span><span class="txt">Noção informal</span></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <h3 style="margin-top:0">Diferença de margem iFood x próprio</h3>
+          <div class="donut-row">
+            <div class="donut" style="width:64px;height:64px;background:conic-gradient(var(--navy) 0% 43%, var(--khaki) 43% 72%, var(--grey) 72% 100%)"><div class="hole" style="width:34px;height:34px;font-size:10px;">43%</div></div>
+            <div class="legend">
+              <div class="row"><span class="dot" style="background:var(--navy)"></span><span class="txt">Estimativa, não exata</span></div>
+              <div class="row"><span class="dot" style="background:var(--khaki)"></span><span class="txt">Não opera marketplace</span></div>
+              <div class="row"><span class="dot" style="background:var(--grey)"></span><span class="txt">Calcula com precisão / não usa</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Como consolidam as avaliações dos clientes?</h2>
+      <div class="donut-row" style="flex-direction:column;">
+        <div class="donut" style="background:conic-gradient(var(--navy) 0% 57%, var(--khaki) 57% 100%)"><div class="hole">57%</div></div>
+        <div class="legend" style="margin-top:10px;width:100%;">
+          <div class="row"><span class="dot" style="background:var(--navy)"></span><span class="txt">Acompanha manualmente cada plataforma</span><span class="pct">57%</span></div>
+          <div class="row"><span class="dot" style="background:var(--khaki)"></span><span class="txt">Só lê quando tem tempo, sem processo</span><span class="pct">43%</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card" style="margin-bottom:14px;">
+        <h2>Se o movimento dobrasse amanhã, o que quebraria primeiro?</h2>
+        <div class="bar-row"><div class="bar-label"><span>Gestão de pedidos (cozinha/delivery)</span><b>43% (3)</b></div><div class="bar-track"><div class="bar-fill" style="width:43%"></div></div></div>
+        <div class="bar-row"><div class="bar-label"><span>"Não sei, nunca ocorreu"</span><b>29% (2)</b></div><div class="bar-track"><div class="bar-fill" style="width:29%"></div></div></div>
+        <div class="bar-row"><div class="bar-label"><span>Equipe / escala de funcionários</span><b>14% (1)</b></div><div class="bar-track"><div class="bar-fill" style="width:14%"></div></div></div>
+        <div class="bar-row"><div class="bar-label"><span>Financeiro e fechamento de caixa</span><b>14% (1)</b></div><div class="bar-track"><div class="bar-fill" style="width:14%"></div></div></div>
+      </div>
+      <div class="card">
+        <h2>Tecnologia e ferramentas</h2>
+        <h3 style="margin-top:0">Ferramenta indispensável hoje</h3>
+        <div class="icon-list">
+          <div class="item"><div class="ico">📗</div><div class="txt">Planilhas de Excel</div><div class="pct">29% (2)</div></div>
+          <div class="item"><div class="ico">🚫</div><div class="txt">Nenhuma específica</div><div class="pct">29% (2)</div></div>
+          <div class="item"><div class="ico">📱</div><div class="txt">Redes sociais / rodo digital</div><div class="pct">14% (1)</div></div>
+        </div>
+        <h3>Se pudesse resolver um problema com tecnologia</h3>
+        <div class="icon-list">
+          <div class="item"><div class="ico">🔗</div><div class="txt">Sistema totalmente integrado para gestão</div><div class="pct">14% (1)</div></div>
+          <div class="item"><div class="ico">⚙️</div><div class="txt">Máquinas modernas p/ agilizar processos</div><div class="pct">14% (1)</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-row">
+    <div class="pagenum">i</div>
+    <div>2026</div>
+  </div>
+
+</div>
+</body>
+</html>
