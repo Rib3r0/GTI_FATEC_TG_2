@@ -1,6 +1,6 @@
-# Sistema de Controle de Estoque com IA
+# Sistema de Controle de Estoque com Machine learn para previsão de demanda e redução do desperdício 
 
-> **Nome provisório:** Sistema de Controle de Estoque com Relatórios e Inteligência Artificial para Pequenos Negócios
+> **Nome provisório:** Sistema de Controle de Estoque com Inteligência Artificial para Pequenos Negócios
 
 ## 📌 Sobre o projeto
 
