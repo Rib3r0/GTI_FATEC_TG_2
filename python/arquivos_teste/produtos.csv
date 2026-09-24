@@ -1,5 +1,5 @@
-produto_id,nome,categoria,unidade_medida,estoque_minimo,criado_em
-101,Contra-Filé,Carnes,kg,15.00,2026-01-10 08:00
-102,Queijo Mozarela,Laticínios,kg,5.00,2026-01-10 08:00
-103,Arroz Arbóreo,Grãos,kg,4.00,2026-01-10 08:00
-104,Alface Crespa,Hortifrúti,Un,10.00,2026-01-10 08:00
+﻿produto_id,nome,categoria,unidade_medida,estoque_minimo
+101,Contra-Filé,Carnes,kg,15.0
+102,Queijo Mozarela,Laticínios,kg,5.0
+103,Arroz Arbóreo,Grãos,kg,4.0
+104,Alface Crespa,Hortifrúti,Un,10.0

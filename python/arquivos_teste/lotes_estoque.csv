@@ -1,0 +1,4 @@
+﻿lote_id,produto_id,codigo_lote,quantidade_inicial,quantidade_atual,data_validade,data_entrada
+L01,101,LOT-20260910-A,50.0,12.5,2026-09-28,2026-09-10
+
+L03,102,LOT-20260911-A,15.0,6.7,2026-09-30,2026-09-11
