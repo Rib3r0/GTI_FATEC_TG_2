@@ -1,0 +1,11 @@
+﻿produto_id,nome,categoria,unidade_medida,estoque_minimo
+101,Contra-Filé,Carnes,kg,20.0
+102,Peito de Frango,Carnes,kg,15.0
+103,Queijo Mozarela,Laticínios,kg,8.0
+104,Creme de Leite,Laticínios,L,5.0
+105,Alface Crespa,Hortifrúti,Un,15.0
+106,Tomate Italiano,Hortifrúti,kg,10.0
+107,Arroz Arbóreo,Grãos,kg,10.0
+108,Feijão Preto,Grãos,kg,12.0
+109,Cerveja Artesanal,Bebidas,L,30.0
+110,Azeite Extra Virgem,Temperos,L,4.0
