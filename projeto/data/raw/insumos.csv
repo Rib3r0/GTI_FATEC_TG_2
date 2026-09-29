@@ -1,0 +1,11 @@
+id,nome,unidade,custo_unitario
+1,arroz,kg,5.0
+2,feijao,kg,8.0
+3,carne_bovina,kg,35.0
+4,frango,kg,15.0
+5,batata,kg,6.0
+6,tomate,kg,7.0
+7,cebola,kg,4.0
+8,alface,kg,5.0
+9,queijo,kg,40.0
+10,farinha,kg,4.0

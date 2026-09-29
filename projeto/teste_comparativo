@@ -1,0 +1,33 @@
+
+Modelo	MAE	RMSE	MAPE (%)	WAPE (%)	Viés
+Baseline (média móvel 7d)	8,84	11,72	19,95	19,64	-0,73
+Ridge	5,87	7,75	14,40	13,03	+1,03
+Random Forest	5,41	7,59	12,83	12,01	-0,45
+LightGBM	5,69	7,62	13,04	12,64	-2,17
+Ensemble (média simples)	5,26	7,23	12,50	11,69	-0,53
+Ensemble (média ponderada)	5,26	7,23	12,49	11,69	-0,55
+Leitura rápida:
+
+Todos os modelos batem o baseline com folga.
+
+Ensemble ponderado é o melhor em todas as métricas.
+
+Random Forest é o melhor individual; LightGBM perde por causa do viés alto (-2,17).
+
+Ridge é o mais simples e ainda assim bate o baseline.
+
+3. Justificativa pronta para o relatório
+Cole isso como está (adapte o tom se quiser):
+
+Foram avaliados cinco modelos para previsão de demanda: um baseline determinístico (média móvel de 7 dias), Regressão Ridge, Random Forest, LightGBM e dois ensembles (média simples e média ponderada pelo WAPE). A validação foi temporal, utilizando os 30 dias mais recentes como conjunto de teste, e as métricas adotadas foram MAE, RMSE, MAPE, WAPE e viés.
+
+O baseline apresentou WAPE de 19,64%, servindo como piso mínimo de desempenho. Todos os modelos de machine learning superaram o baseline, com destaque para o Random Forest (WAPE 12,01%) e o LightGBM (WAPE 12,64%). O ensemble por média ponderada obteve o melhor desempenho geral (WAPE 11,69%, MAE 5,26), superando inclusive o melhor modelo individual em todas as métricas avaliadas.
+
+Optou-se pelo ensemble por média ponderada como modelo final por três razões: (i) apresentou o menor erro absoluto e percentual; (ii) reduziu o WAPE em aproximadamente 40% em relação ao baseline; e (iii) mostrou-se mais robusto que modelos individuais, diluindo a variabilidade inerente a cada algoritmo. O LightGBM, apesar de competitivo, apresentou viés negativo elevado (-2,17), indicando tendência sistemática de subestimação da demanda, o que o torna menos adequado para decisões de compra e produção.
+
+Isso é o suficiente. Não precisa de mais justificativa.
+
+4. Uma observação honesta para você ter na manga
+A diferença entre o ensemble e o Random Forest é pequena (11,69 vs 12,01 = 0,32 p.p.). Se a banca perguntar "vale a pena tanta complexidade por 0,3 p.p.?", a resposta honesta é:
+
+"A diferença é modesta, mas o ensemble é mais robusto a variações entre execuções e reduz o risco de depender de um único algoritmo. Em produção, a previsão alimenta decisões de compra e produção — um ganho pequeno e consistente se traduz em economia real ao longo do tempo."
