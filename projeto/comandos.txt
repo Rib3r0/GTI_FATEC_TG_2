@@ -1,0 +1,3 @@
+python -m src.data_generator
+python -m src.train
+python -m src.predict

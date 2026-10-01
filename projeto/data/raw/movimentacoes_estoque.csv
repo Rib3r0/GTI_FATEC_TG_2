@@ -1,0 +1,14 @@
+id,data,tipo,insumo,quantidade,custo_unitario,origem,observacao
+1,2026-09-30,ENTRADA,alface,40.0,5.0,estoque_inicial,carga inicial do sistema
+2,2026-09-30,ENTRADA,tomate,70.0,7.0,estoque_inicial,carga inicial do sistema
+3,2026-09-30,ENTRADA,queijo,20.0,40.0,estoque_inicial,carga inicial do sistema
+4,2026-09-30,ENTRADA,arroz,180.0,5.0,estoque_inicial,carga inicial do sistema
+5,2026-09-30,ENTRADA,feijao,90.0,8.0,estoque_inicial,carga inicial do sistema
+6,2026-09-30,ENTRADA,farinha,30.0,4.0,estoque_inicial,carga inicial do sistema
+7,2026-09-30,ENTRADA,cebola,50.0,4.0,estoque_inicial,carga inicial do sistema
+8,2026-09-30,ENTRADA,batata,70.0,6.0,estoque_inicial,carga inicial do sistema
+9,2026-09-30,ENTRADA,carne_bovina,150.0,35.0,estoque_inicial,carga inicial do sistema
+10,2026-09-30,ENTRADA,frango,200.0,15.0,estoque_inicial,carga inicial do sistema
+11,2026-09-30,ENTRADA,alface,15.1,5.0,fornecedor_A,
+12,2026-09-30,PERDA,arroz,-1.0,0.0,validade,
+13,2026-09-30,ENTRADA,feijao,10.0,50.0,teste,ytteste

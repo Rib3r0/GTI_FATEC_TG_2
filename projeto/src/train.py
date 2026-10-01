@@ -64,7 +64,7 @@ def treinar_lgbm(df_treino: pd.DataFrame) -> LGBMRegressor:
 # ------------------------------------------------------------------
 # WRAPPER DE PREDIÇÃO UNIFORME
 # ------------------------------------------------------------------
-def prever(modelo, nome: str, df_val: pd.DataFrame, prophet_models=None) -> np.ndarray:
+def prever(modelo, nome: str, df_val: pd.DataFrame) -> np.ndarray:
     if nome == "baseline":
         return baseline_media_movel(df_val)
     if nome == "random_forest":
@@ -104,80 +104,81 @@ def main():
     print(f"Treino: {treino['data'].min()} a {treino['data'].max()} ({len(treino)})")
     print(f"Val:    {val['data'].min()} a {val['data'].max()} ({len(val)})")
 
-    # --- Baseline
-    preds = {"baseline": baseline_media_movel(val)}
+    y_true = val["quantidade"].to_numpy()
 
-    # --- Ridge
+    # ---------- Modelos base ----------
+    preds: dict[str, np.ndarray] = {}
+
+    print("Baseline (média móvel 7d)...")
+    preds["baseline"] = baseline_media_movel(val)
+
     print("Treinando Ridge...")
     ridge = treinar_ridge(treino)
     preds["ridge"] = prever(ridge, "ridge", val)
 
-    # --- Random Forest
     print("Treinando Random Forest...")
     rf = treinar_random_forest(treino)
     preds["random_forest"] = prever(rf, "random_forest", val)
 
-    # --- LightGBM
     print("Treinando LightGBM...")
     lgbm = treinar_lgbm(treino)
     preds["lightgbm"] = prever(lgbm, "lightgbm", val)
 
-    # --- Métricas individuais
-    y_true = val["quantidade"].to_numpy()
+    # ---------- Ensembles (calculados ANTES da tabela) ----------
+    base_models = {k: v for k, v in preds.items() if k != "baseline"}
+    wapes_base = {
+        k: resumo_metricas(y_true, np.clip(v, 0, None))["WAPE (%)"]
+        for k, v in base_models.items()
+    }
+
+    preds["ensemble_media_simples"] = np.clip(media_simples(base_models), 0, None)
+    preds["ensemble_media_ponderada"] = np.clip(
+        media_ponderada(base_models, wapes_base), 0, None
+    )
+
+    # ---------- Tabela única com TODOS os modelos ----------
     linhas = []
-    wapes = {}
     for nome, p in preds.items():
-        p_clip = np.clip(p, 0, None)
-        m = resumo_metricas(y_true, p_clip)
+        m = resumo_metricas(y_true, np.clip(p, 0, None))
         m["modelo"] = nome
         linhas.append(m)
-        wapes[nome] = m["WAPE (%)"]
-    tabela = pd.DataFrame(linhas).set_index("modelo").round(3)
-    print("\n=== Comparação de modelos ===")
+
+    tabela = (
+        pd.DataFrame(linhas)
+        .set_index("modelo")
+        .round(3)
+        .sort_values("WAPE (%)")
+    )
+    print("\n=== Comparação de todos os modelos ===")
     print(tabela)
 
-    # --- Ensembles (excluindo baseline dos ensembles)
-    base_models = {k: v for k, v in preds.items() if k != "baseline"}
-    base_wapes = {k: wapes[k] for k in base_models}
+    # ---------- Escolha do melhor (excluindo baseline) ----------
+    candidatos = tabela.drop(index="baseline", errors="ignore")
+    melhor_nome = candidatos["WAPE (%)"].idxmin()
+    print(f"\n>>> Modelo final escolhido: {melhor_nome} "
+          f"(WAPE {tabela.loc[melhor_nome, 'WAPE (%)']:.3f}%)")
 
-    ens_simples = np.clip(media_simples(base_models), 0, None)
-    ens_pond = np.clip(media_ponderada(base_models, base_wapes), 0, None)
-
-    print("\n=== Ensembles ===")
-    for nome, p in [("ensemble_media_simples", ens_simples),
-                    ("ensemble_media_ponderada", ens_pond)]:
-        m = resumo_metricas(y_true, p)
-        m["modelo"] = nome
-        print(f"{nome}: " + " | ".join(f"{k}={v:.3f}" for k, v in m.items() if k != "modelo"))
-
-    # --- WAPE por prato para o melhor modelo (ensemble ponderado)
+    # ---------- WAPE por prato com o melhor ----------
     val_out = val.copy()
-    val_out["previsao"] = ens_pond
-    print("\n=== WAPE por prato (ensemble ponderado) ===")
+    val_out["previsao"] = preds[melhor_nome]
+    print("\n=== WAPE por prato (modelo final) ===")
     print(metricas_por_prato(val_out)[["MAE", "WAPE (%)", "Viés"]])
 
-    # --- Escolha do melhor
-    resultados = {**{k: wapes[k] for k in preds},
-                  "ensemble_media_simples": resumo_metricas(y_true, ens_simples)["WAPE (%)"],
-                  "ensemble_media_ponderada": resumo_metricas(y_true, ens_pond)["WAPE (%)"]}
-    melhor_nome = min(resultados, key=resultados.get)
-    print(f"\n>>> Melhor modelo por WAPE: {melhor_nome} ({resultados[melhor_nome]:.3f}%)")
-
-    # --- Salva tudo
+    # ---------- Salva pacote ----------
     pacote = {
         "ridge": ridge,
         "random_forest": rf,
         "lightgbm": lgbm,
         "features": FEATURES_ALL,
         "pesos_ensemble": {
-            k: (1.0 / max(v, 1e-6)) for k, v in base_wapes.items()
+            k: (1.0 / max(v, 1e-6)) for k, v in wapes_base.items()
         },
         "tabela_metricas": tabela,
         "melhor_modelo": melhor_nome,
     }
     caminho = MODELS_DIR / "modelos_demanda.pkl"
     joblib.dump(pacote, caminho)
-    print(f"✔ Pacote salvo em {caminho}")
+    print(f"[OK] Pacote salvo em {caminho}")
 
 
 if __name__ == "__main__":

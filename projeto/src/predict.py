@@ -1,3 +1,6 @@
+import os
+os.environ.setdefault("LOKY_MAX_CPU_COUNT", str(os.cpu_count() or 4))
+
 import joblib
 import numpy as np
 import pandas as pd
@@ -11,35 +14,44 @@ def carregar_pacote():
     return joblib.load(MODELS_DIR / "modelos_demanda.pkl")
 
 
-def _linha_features(prato, dia, hist, feriados_set):
+def _linha_features(prato, dia, hist, feriados_set, data_inicio, categorias):
+    """Monta uma linha de features para o dia `dia` e prato `prato`."""
     ult = hist[prato]
     if len(ult) < 30:
         return None
     return {
-        "prato": prato, "data": dia,
-        "dia_semana": dia.weekday(), "mes": dia.month,
+        "prato": prato,
+        "data": pd.Timestamp(dia),
+        "dia_semana": dia.weekday(),
+        "mes": dia.month,
         "dia_ano": dia.timetuple().tm_yday,
         "fim_de_semana": int(dia.weekday() >= 5),
         "feriado": int(dia in feriados_set),
-        "lag_1": ult[-1], "lag_7": ult[-7], "lag_14": ult[-14],
-        "mm_7": float(np.mean(ult[-7:])), "mm_30": float(np.mean(ult[-30:])),
+        "lag_1":  ult[-1],
+        "lag_7":  ult[-7],
+        "lag_14": ult[-14],
+        "mm_7":   float(np.mean(ult[-7:])),
+        "mm_30":  float(np.mean(ult[-30:])),
+        "dias_desde_inicio": (pd.Timestamp(dia) - data_inicio).days,
     }
 
 
 def _predizer_ensemble(pacote, X: pd.DataFrame) -> np.ndarray:
     """Média ponderada dos modelos disponíveis."""
+    feats = pacote["features"]
     preds = {}
-    # Ridge
-    preds["ridge"] = pacote["ridge"].predict(X[pacote["features"]])
-    # RF
-    X_rf = X.copy(); X_rf["prato"] = X_rf["prato"].cat.codes
-    preds["random_forest"] = pacote["random_forest"].predict(X_rf[pacote["features"]])
-    # LGBM
-    preds["lightgbm"] = pacote["lightgbm"].predict(X[pacote["features"]])
-    # Prophet (por prato)
+
+    preds["ridge"] = pacote["ridge"].predict(X[feats])
+
+    X_rf = X.copy()
+    X_rf["prato"] = X_rf["prato"].cat.codes
+    preds["random_forest"] = pacote["random_forest"].predict(X_rf[feats])
+
+    preds["lightgbm"] = pacote["lightgbm"].predict(X[feats])
+
     if pacote.get("prophet"):
         yhat = []
-        for i, row in X.iterrows():
+        for _, row in X.iterrows():
             m = pacote["prophet"][row["prato"]]
             f = pd.DataFrame({"ds": [row["data"]]})
             yhat.append(m.predict(f)["yhat"].values[0])
@@ -55,9 +67,11 @@ def _predizer_ensemble(pacote, X: pd.DataFrame) -> np.ndarray:
 def prever_proximos_dias(n_dias: int = 7) -> pd.DataFrame:
     pacote = carregar_pacote()
     vendas = carregar_vendas()
+    data_inicio = vendas["data"].min()
+    categorias = vendas["prato"].astype("category").cat.categories
+
     hist = {p: sub.sort_values("data")["quantidade"].tolist()
-            for p, sub in vendas.groupby("prato")}
-    cats = vendas["prato"].astype("category").cat.categories
+            for p, sub in vendas.groupby("prato", observed=True)}
 
     inicio = vendas["data"].max().date() + timedelta(days=1)
     fim = inicio + timedelta(days=n_dias - 1)
@@ -66,17 +80,26 @@ def prever_proximos_dias(n_dias: int = 7) -> pd.DataFrame:
     saida = []
     for passo in range(n_dias):
         dia = inicio + timedelta(days=passo)
-        linhas = [l for l in (_linha_features(p, dia, hist, feriados_set)
-                              for p in hist) if l]
+
+        linhas = []
+        for prato in hist:
+            linha = _linha_features(prato, dia, hist, feriados_set, data_inicio, categorias)
+            if linha is not None:
+                linhas.append(linha)
         if not linhas:
             break
+
         X = pd.DataFrame(linhas)
-        X["prato"] = pd.Categorical(X["prato"], categories=cats)
+        X["prato"] = pd.Categorical(X["prato"], categories=categorias)
 
         preds = np.clip(np.round(_predizer_ensemble(pacote, X)), 0, None).astype(int)
         for i, p in enumerate(X["prato"]):
             hist[p].append(int(preds[i]))
-            saida.append({"data": pd.Timestamp(dia), "prato": p, "previsao": int(preds[i])})
+            saida.append({
+                "data": pd.Timestamp(dia),
+                "prato": p,
+                "previsao": int(preds[i]),
+            })
 
     return pd.DataFrame(saida).sort_values(["data", "prato"]).reset_index(drop=True)
 

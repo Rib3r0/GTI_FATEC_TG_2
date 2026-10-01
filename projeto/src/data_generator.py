@@ -29,7 +29,7 @@ INSUMOS = {
 FICHA_TECNICA = {
     "feijoada":        {"feijao": 0.25, "carne_bovina": 0.30, "arroz": 0.15, "cebola": 0.05},
     "strogonoff":      {"frango": 0.25, "arroz": 0.15, "cebola": 0.05},
-    "frango_grelhado": {"frango": 0.30, "arroz": 0.15, "salada": 0.0, "alface": 0.05, "tomate": 0.05},
+    "frango_grelhado": {"frango": 0.30, "arroz": 0.15, "salada": 0.0, "alface": 0.05, "tomate": 0.05, "batata": 0.15},
     "lasanha":         {"carne_bovina": 0.25, "queijo": 0.15, "farinha": 0.05, "tomate": 0.10},
     "salada_caesar":   {"alface": 0.15, "frango": 0.10, "queijo": 0.05, "tomate": 0.05},
 }
@@ -141,10 +141,10 @@ def salvar_dados():
     insumos.to_csv(RAW_DIR / "insumos.csv", index=False)
     ficha.to_csv(RAW_DIR / "ficha_tecnica.csv", index=False)
 
-    print(f"✔ vendas: {len(vendas)} linhas")
-    print(f"✔ pratos: {len(pratos)} linhas")
-    print(f"✔ insumos: {len(insumos)} linhas")
-    print(f"✔ ficha técnica: {len(ficha)} linhas")
+    print(f"[OK] vendas: {len(vendas)} linhas")
+    print(f"[OK] pratos: {len(pratos)} linhas")
+    print(f"[OK] insumos: {len(insumos)} linhas")
+    print(f"[OK] ficha técnica: {len(ficha)} linhas")
 
 
 if __name__ == "__main__":

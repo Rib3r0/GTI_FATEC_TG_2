@@ -18,14 +18,21 @@ SEED = 42
 
 # Estoque inicial de exemplo (unidades)
 ESTOQUE_INICIAL = {
-    "arroz": 20.0,
-    "feijao": 15.0,
-    "carne_bovina": 30.0,
-    "frango": 25.0,
-    "batata": 40.0,
-    "tomate": 20.0,
-    "cebola": 20.0,
-    "alface": 10.0,
-    "queijo": 8.0,
-    "farinha": 15.0,
+    # Perecíveis — estoque curto (2-4 dias), alguns em falta de propósito
+    "alface":       40.0,   # necessidade ~52 kg / 7d → FALTA (perece rápido)
+    "tomate":       70.0,   # necessidade ~56 kg / 7d → OK
+    "queijo":       20.0,   # necessidade ~46 kg / 7d → FALTA (caro, compra semanal)
+
+    # Secos — estoque de ~1 semana
+    "arroz":       180.0,   # necessidade ~165 kg / 7d → OK
+    "feijao":       90.0,   # necessidade ~94 kg / 7d → leve FALTA
+    "farinha":      30.0,   # necessidade ~12 kg / 7d → EXCESSO
+    "cebola":       50.0,   # necessidade ~33 kg / 7d → OK
+    
+    # Raízes / acompanhamentos
+    "batata":       70.0,   # necessidade ~95 kg / 7d → leve FALTA
+
+    # Proteínas — estoque de 5-6 dias
+    "carne_bovina":150.0,   # necessidade ~172 kg / 7d → leve FALTA
+    "frango":      200.0,   # necessidade ~224 kg / 7d → FALTA
 }
