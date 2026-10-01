@@ -1,3 +1,47 @@
+Modelos de ML
+1. baseline (Linha de Base)
+O que é: É o "chute educado". Não é um modelo de Machine Learning de verdade, mas sim uma regra simples usada como ponto de partida para comparação. 
+As duas baselines mais comuns são:
+    Média Histórica: Prever que a demanda de amanhã será igual à média dos últimos 30/90 dias.
+    Naive (Ingênuo): Prever que a demanda de amanhã será igual à de hoje ou à do mesmo dia do ano passado.
+
+Por que ele existe: 
+Se um modelo complexo de IA não consegue bater a baseline, ele é inútil. A baseline é o "aluno que tirou 5 na prova"; qualquer modelo tem que tirar mais que isso.
+Desempenho na tabela: Foi o pior de todos (WAPE de 18,93%). Isso é esperado e saudável. Significa que os modelos de ML estão de fato agregando valor. Se a baseline ganhasse, seria um sinal de que os dados não têm padrão ou que algo está errado.
+
+2. ridge (Regressão Ridge)
+O que é: É uma regressão linear (aquela do tipo y = a*x + b) com uma "punição" matemática (regularização L2) que impede que os coeficientes fiquem muito grandes.
+Isso ajuda a evitar o overfitting (quando o modelo decora os dados de treino e vai mal nos dados novos).
+Como funciona na prática: Ele tenta encontrar uma relação linear entre as variáveis de entrada (ex: preço, dia da semana, feriado) e a demanda. É um modelo linear, ou seja,
+ele assume que se o preço sobe 1, a demanda cai sempre na mesma proporção.
+Ponto curioso da tabela: Ele teve o pior viés positivo (1,052). Isso significa que ele subestima consistentemente a demanda real. Em um contexto de estoque, isso é perigoso: você compraria menos do que precisa e perderia vendas.
+
+3. random_forest (Floresta Aleatória)
+O que é: É um conjunto (ensemble) de muitas árvores de decisão. Cada árvore é treinada em uma amostra aleatória dos dados e usando um subconjunto aleatório das variáveis.
+A previsão final é a média das previsões de todas as árvores.
+Como funciona na prática: Ele consegue capturar relações não-lineares e interações complexas (ex: "se for sábado E estiver calor, a demanda sobe muito"). É muito robusto e difícil de dar overfitting.
+
+4. lightgbm (Light Gradient Boosting Machine)
+O que é: É outro modelo baseado em árvores, mas com uma abordagem diferente do Random Forest. Em vez de treinar árvores em paralelo e tirar a média,
+o LightGBM treina árvores sequencialmente, onde cada nova árvore tenta corrigir os erros da anterior (boosting).
+Como funciona na prática: É um dos modelos mais poderosos e rápidos para dados tabulares. Ele costuma ser o "estado da arte" em competições de dados e em aplicações industriais.
+Ponto curioso: Ele teve o viés mais negativo (-2,260). Isso significa que ele superestima fortemente a demanda. Em um contexto de estoque, isso levaria a um excesso de produtos parados.
+
+5. ensemble_media_ponderada (Média Ponderada)
+O que é: É a combinação de vários modelos, mas com pesos diferentes. Modelos que performaram melhor no passado recebem pesos maiores na previsão final.
+É como ter uma equipe onde o membro mais experiente tem mais voz.
+Como funciona na prática: Se o Random Forest acerta 70% das vezes e o Ridge acerta 50%, o peso do Random Forest será maior. 
+A ideia é que a combinação seja melhor que qualquer modelo individual.
+
+6. ensemble_media_simples (Média Simples)
+O que é: É a combinação de vários modelos, mas todos com o mesmo peso. A previsão final é simplesmente a média aritmética das previsões de todos os modelos.
+Como funciona na prática: Se você tem 4 modelos prevendo 100, 110, 90 e 100, a previsão final será (100+110+90+100)/4 = 100. Nenhum modelo é mais importante que o outro.
+
+Em problemas de previsão, ensembles (combinações) quase sempre batem modelos individuais. E, surpreendentemente, a média simples costuma ser tão boa quanto (ou melhor que)
+a média ponderada, porque é mais difícil de "errar" na hora de definir os pesos.
+
+Criterios de avaliação
+
 MAE (Erro Absoluto Médio): 
 É a média dos erros em valor absoluto. Quanto menor, melhor. (Ex: se o MAE é 5, o modelo erra, em média, 5 unidades para mais ou para menos).
 RMSE (Raiz do Erro Quadrático Médio): 
@@ -12,7 +56,7 @@ Valores positivos indicam que o modelo está subestimando (o real é maior que a
 Valores negativos indicam que o modelo está superestimando (a previsão é maior que o real).
 O ideal é um viés próximo de 0.
 
-
+Exemplo:
 Modelo	MAE	RMSE	MAPE (%)	WAPE (%)	Viés
 Baseline (média móvel 7d)	8,84	11,72	19,95	19,64	-0,73
 Ridge	5,87	7,75	14,40	13,03	+1,03
