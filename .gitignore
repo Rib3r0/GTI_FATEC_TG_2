@@ -1,1 +1,27 @@
-*venv*
+# Ambiente virtual
+*venv/
+env/
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Dados gerados (mantenha apenas os scripts)
+data/raw/*.csv
+data/processed/*.csv
+models/*.pkl
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Sistema
+.DS_Store
+Thumbs.db

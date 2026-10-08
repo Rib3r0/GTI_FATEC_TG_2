@@ -35,28 +35,42 @@ def _salvar(df: pd.DataFrame) -> None:
 # Registro de movimentações
 # ------------------------------------------------------------------
 def registrar_movimentacao(insumo: str, tipo: str, quantidade: float,
-                            custo_unitario: float = 0.0,
+                            custo_unitario: float | None = 0.0,
                             origem: str = "", observacao: str = "",
-                            data: date | None = None) -> None:
+                            data: date | None = None,
+                            permitir_negativo: bool = False) -> None:
     if tipo not in TIPOS_VALIDOS:
         raise ValueError(f"Tipo inválido: {tipo}")
+
+    if quantidade is None:
+        raise ValueError("Quantidade é obrigatória.")
+    quantidade = float(quantidade)
     if quantidade == 0:
         raise ValueError("Quantidade não pode ser zero.")
+
+    custo_unitario = float(custo_unitario) if custo_unitario is not None else 0.0
 
     if tipo == "ENTRADA":
         quantidade = abs(quantidade)
     elif tipo in {"SAIDA_VENDA", "PERDA"}:
         quantidade = -abs(quantidade)
-    # AJUSTE mantém o sinal recebido
+        if not permitir_negativo:
+            atual = saldo_atual(insumo)
+            if atual + quantidade < 0:
+                raise ValueError(
+                    f"Saldo insuficiente de '{insumo}': "
+                    f"disponível {atual:.2f}, tentativa de baixa {abs(quantidade):.2f}."
+                )
 
     df = _carregar()
+    ts = pd.Timestamp.now() if data is None else pd.Timestamp(data)
     nova = pd.DataFrame([{
         "id": _proximo_id(df),
-        "data": pd.Timestamp(data or date.today()),
+        "data": ts,
         "tipo": tipo,
         "insumo": insumo,
         "quantidade": float(quantidade),
-        "custo_unitario": float(custo_unitario),
+        "custo_unitario": custo_unitario,
         "origem": origem,
         "observacao": observacao,
     }])
@@ -67,8 +81,31 @@ def registrar_entrada(insumo: str, quantidade: float,
                        custo_unitario: float = 0.0,
                        origem: str = "fornecedor",
                        observacao: str = "") -> None:
+    """Registra uma entrada e atualiza o custo unitário do insumo
+    pela média ponderada móvel (padrão contábil):
+        novo_custo = (custo_atual * saldo + custo_novo * qtd) / (saldo + qtd)
+    Se o custo informado for 0, o custo atual é mantido."""
+    quantidade = float(quantidade)
+    custo_informado = float(custo_unitario) if custo_unitario else 0.0
+
+    if custo_informado > 0:
+        from src.catalog import listar_insumos, editar_insumo
+        saldo = saldo_atual(insumo)
+        df_ins = listar_insumos()
+        mask = df_ins["nome"] == insumo
+        if mask.any():
+            custo_atual = float(df_ins.loc[mask, "custo_unitario"].iloc[0])
+            unidade = df_ins.loc[mask, "unidade"].iloc[0]
+            if saldo > 0:
+                novo_custo = (
+                    custo_atual * saldo + custo_informado * quantidade
+                ) / (saldo + quantidade)
+            else:
+                novo_custo = custo_informado
+            editar_insumo(insumo, unidade, round(novo_custo, 4))
+
     registrar_movimentacao(insumo, "ENTRADA", quantidade,
-                            custo_unitario, origem, observacao)
+                            custo_informado, origem, observacao)
 
 
 def registrar_perda(insumo: str, quantidade: float,
@@ -147,6 +184,93 @@ def inicializar_estoque(forcar: bool = False) -> None:
         )
     print(f"[OK] Estoque inicial registrado para {len(ESTOQUE_INICIAL)} insumos.")
 
+def simular_vendas_recentes(dias: int = 7) -> None:
+    """Registra SAIDA_VENDA para os últimos N dias de vendas.csv.
+    Roda uma vez; ignora se já houver saídas simuladas."""
+    from src.data_loader import carregar_vendas, carregar_ficha_tecnica
+
+    movs = _carregar()
+    if not movs.empty and movs["origem"].astype(str).str.startswith("sim:").any():
+        print("[SKIP] Vendas recentes já simuladas.")
+        return
+
+    vendas = carregar_vendas().sort_values("data")
+    corte = vendas["data"].max() - pd.Timedelta(days=dias - 1)
+    vendas = vendas[vendas["data"] >= corte]
+
+    ficha = carregar_ficha_tecnica()
+    next_id = _proximo_id(movs)
+    novas = []
+
+    for _, v in vendas.iterrows():
+        prato = v["prato"]
+        qtd = int(v["quantidade"])
+        data_v = v["data"]
+        for _, row in ficha[ficha["prato"] == prato].iterrows():
+            q = row["quantidade_por_prato"] * qtd
+            if q <= 0:
+                continue
+            novas.append({
+                "id": next_id,
+                "data": data_v,
+                "tipo": "SAIDA_VENDA",
+                "insumo": row["insumo"],
+                "quantidade": -abs(q),
+                "custo_unitario": 0.0,
+                "origem": f"sim:venda:{prato}",
+                "observacao": "",
+            })
+            next_id += 1
+
+    if novas:
+        _salvar(pd.concat([movs, pd.DataFrame(novas)], ignore_index=True))
+        print(f"[OK] Simuladas {len(novas)} saídas dos últimos {dias} dias.")
+
+
+def _consumo_simulado_por_insumo(dias: int) -> dict[str, float]:
+    """Consumo total por insumo nas vendas dos últimos N dias."""
+    from src.data_loader import carregar_vendas, carregar_ficha_tecnica
+
+    vendas = carregar_vendas().sort_values("data")
+    corte = vendas["data"].max() - pd.Timedelta(days=dias - 1)
+    vendas = vendas[vendas["data"] >= corte]
+
+    ficha = carregar_ficha_tecnica()
+    v = vendas.merge(ficha, on="prato", how="left")
+    v["consumo"] = v["quantidade"] * v["quantidade_por_prato"]
+    return v.groupby("insumo")["consumo"].sum().to_dict()
+
+
+def resetar_estoque(dias_simulados: int = 7) -> None:
+    """Recalibra o livro-razão:
+    a carga inicial = ESTOQUE_INICIAL + consumo previsto nos próximos N dias.
+    Assim, após as vendas simuladas, o saldo final bate com ESTOQUE_INICIAL."""
+    if MOV_FILE.exists():
+        MOV_FILE.unlink()
+
+    insumos_df = carregar_insumos().set_index("nome")
+    consumo = _consumo_simulado_por_insumo(dias_simulados)
+
+    for insumo, qtd_final in ESTOQUE_INICIAL.items():
+        if insumo not in insumos_df.index:
+            continue
+        custo = float(insumos_df.loc[insumo, "custo_unitario"])
+        consumo_periodo = float(consumo.get(insumo, 0.0))
+        qtd_inicial = qtd_final + consumo_periodo
+
+        registrar_movimentacao(
+            insumo, "ENTRADA", qtd_inicial,
+            custo_unitario=custo,
+            origem="estoque_inicial",
+            observacao=(
+                f"carga calibrada: saldo alvo {qtd_final:.2f} + "
+                f"{consumo_periodo:.2f} consumidos em {dias_simulados}d"
+            ),
+            permitir_negativo=True,
+        )
+
+    simular_vendas_recentes(dias_simulados)
+    print(f"[OK] Estoque resetado e calibrado para {dias_simulados} dias.")
 
 if __name__ == "__main__":
     inicializar_estoque()

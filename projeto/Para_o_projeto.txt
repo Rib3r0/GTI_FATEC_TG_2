@@ -1,0 +1,52 @@
+Que tipo de dados precisamos para o machine learnig
+
+Dados temporais -> Dias da semana, mês, Dia do mês, datas comemorativas e feriados (talvez horario)
+
+Dados operacionais -> Entrada e saida de insumos (lotes e quantidade), desperdicio, unidade de media, minimo no estoque, 
+categoria ( Carnes, Laticínios, Bebidas, Grãos, Hortfrúti, temperos, Outros) mas varia de restaurante a restaurante, turno, prato
+
+Variaveis externas -> Temperatura/clima do dia, eventos na região e modas e trends
+
+Modelagem
+
+Modelo de regressão com arvores
+
+algoritimos: RAMDOM FOREST REGRESSOR
+
+Porque:
+
+Captura de Relações Não Lineares e Complexas: A venda de um restaurante não cresce de forma reta ou previsível. 
+Um sábado ensolarado vende muito, mas um sábado com tempestade pode derrubar as vendas pela metade. Árvores de decisão conseguem criar regras cruzadas do tipo: 
+SE dia == Sábado E chuva == Sim ENTÃO demanda = X.
+
+Facilidade com Variáveis Mistas:Em estoque de restaurantes, você lida ao mesmo tempo com números (temperatura, vendas do dia anterior) e categorias (dia da semana, é feriado?,
+ turno). Modelos de árvores lidam nativamente muito bem com esse mix.
+
+Resistência a Ruídos e Outliers:Um dia atípico (ex: um evento corporativo fechado que vendeu 5x mais em uma terça-feira) pode distorcer a média.
+O Random Forest combina dezenas de árvores independentes e tira a média entre elas, o que atenua o impacto desses picos isolados.
+
+Porque nao outros modelos:
+
+Regressão Linear:	Pressupõe que a relação entre as variáveis é uma linha reta. Ela falha ao tentar entender interações complexas 
+(ex: o efeito do dia da semana muda dependendo do clima).
+
+ARIMA / SARIMA (Séries Temporais Clássicas):	Olham apenas para o histórico do passado (tempo vs. valor). 
+Têm grande dificuldade para incluir variáveis externas cruciais, como previsão do tempo, promoções ou feriados locais.
+
+Prophet (Meta):	Funciona muito bem para tendências globais e datas festivas fixas, mas é menos flexível para relacionar diretamente o consumo de ingredientes
+à variação de múltiplos fatores dinâmicos do dia a dia.
+
+Redes Neurais (LSTM / Deep Learning):	Exigem um volume massivo de dados (anos de histórico diário sem falhas) para não dar overfitting. Além disso,
+funcionam como uma "caixa preta", sendo muito difíceis de interpretar os motivos de uma previsão.
+
+Exemplo Prático de Funcionamento
+
+Imagine prever a venda de Contra-Filé:
+Regressão Linear Múltipla:
+Tenta aplicar um peso fixo para cada fator:$$\text{Venda} = 10\text{kg} + (2 \times \text{Sexta}) + (0.5 \times \text{Temperatura}) - (3 \times \text{Chuva})$$
+O problema: Se chover e for sexta à noite, a fórmula pode errar feio por tentar somar e subtrair fatores fixos de forma rígida.
+
+RandomForestRegressor:
+Cria centenas de regras compostas por ramificações:
+Árvore 1: "É sexta-feira? Sim. Está chovendo? Sim. Evento na região? Sim. $\rightarrow$ Previsão: 22 kg"
+Árvore 2: "É dia de semana? Não. Tem promoção? Sim. $\rightarrow$ Previsão: 25 kg"Ao final, o algoritmo junta o resultado de todas as 100 árvores e entrega a média mais precisa.

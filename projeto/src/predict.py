@@ -14,7 +14,7 @@ def carregar_pacote():
     return joblib.load(MODELS_DIR / "modelos_demanda.pkl")
 
 
-def _linha_features(prato, dia, hist, feriados_set, data_inicio, categorias):
+def _linha_features(prato, dia, hist, feriados_set, data_inicio, temp_media):
     """Monta uma linha de features para o dia `dia` e prato `prato`."""
     ult = hist[prato]
     if len(ult) < 30:
@@ -27,11 +27,16 @@ def _linha_features(prato, dia, hist, feriados_set, data_inicio, categorias):
         "dia_ano": dia.timetuple().tm_yday,
         "fim_de_semana": int(dia.weekday() >= 5),
         "feriado": int(dia in feriados_set),
+        "temperatura": float(temp_media),
+        "promocao": 0,
         "lag_1":  ult[-1],
+        "lag_2":  ult[-2],
         "lag_7":  ult[-7],
         "lag_14": ult[-14],
         "mm_7":   float(np.mean(ult[-7:])),
+        "mm_14":  float(np.mean(ult[-14:])),
         "mm_30":  float(np.mean(ult[-30:])),
+        "std_7":  float(np.std(ult[-7:])),
         "dias_desde_inicio": (pd.Timestamp(dia) - data_inicio).days,
     }
 
@@ -70,6 +75,14 @@ def prever_proximos_dias(n_dias: int = 7) -> pd.DataFrame:
     data_inicio = vendas["data"].min()
     categorias = vendas["prato"].astype("category").cat.categories
 
+    # Temperatura média dos últimos 30 dias (proxy para o futuro)
+    if "temperatura" in vendas.columns:
+        temp_media = float(
+            vendas.sort_values("data").tail(30)["temperatura"].mean()
+        )
+    else:
+        temp_media = 22.0
+
     hist = {p: sub.sort_values("data")["quantidade"].tolist()
             for p, sub in vendas.groupby("prato", observed=True)}
 
@@ -83,7 +96,8 @@ def prever_proximos_dias(n_dias: int = 7) -> pd.DataFrame:
 
         linhas = []
         for prato in hist:
-            linha = _linha_features(prato, dia, hist, feriados_set, data_inicio, categorias)
+            linha = _linha_features(prato, dia, hist, feriados_set,
+                                     data_inicio, temp_media)
             if linha is not None:
                 linhas.append(linha)
         if not linhas:

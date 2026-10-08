@@ -1,0 +1,12 @@
+MAE (Erro Absoluto Médio): É a média dos erros em valor absoluto. Quanto menor, melhor. (Ex: se o MAE é 5, o modelo erra, em média, 5 unidades para mais ou para menos).
+
+RMSE (Raiz do Erro Quadrático Médio): Parecido com o MAE, mas penaliza erros muito grandes com mais força. Também é melhor quanto menor.
+
+MAPE (%) (Erro Percentual Absoluto Médio): O erro médio em porcentagem. É muito usado, mas tem problemas se os valores reais forem próximos de zero.
+
+WAPE (%) (Erro Percentual Absoluto Ponderado): Uma versão mais robusta do MAPE. Ele soma os erros absolutos e divide pela soma dos valores reais. É a métrica mais confiável aqui para comparar modelos. Quanto menor, melhor.
+
+Viés (Bias): Indica se o modelo tem a tendência de errar para mais ou para menos.
+Valores positivos indicam que o modelo está subestimando (o real é maior que a previsão).
+Valores negativos indicam que o modelo está superestimando (a previsão é maior que o real).
+O ideal é um viés próximo de 0.

@@ -1,8 +1,16 @@
 import pandas as pd
+import os
 from src.config import ESTOQUE_INICIAL
+from src.config import HORIZONTE_PREVISAO
 from src.data_loader import carregar_insumos, carregar_ficha_tecnica
 from src.predict import prever_proximos_dias
 from src.inventory import inicializar_estoque
+from src.config import PROCESSED_DIR
+from src.waste import (
+    perdas_por_motivo, perdas_por_insumo, perdas_por_dia,
+    taxa_desperdicio, balanco_insumos, consumo_teorico_vs_real,
+)
+from src.inventory import inicializar_estoque, simular_vendas_recentes
 
 
 def previsao_para_insumos(previsao: pd.DataFrame) -> pd.DataFrame:
@@ -61,7 +69,6 @@ def salvar_resultados(necessidade_diaria: pd.DataFrame,
                       comparacao: pd.DataFrame,
                       alertas: pd.DataFrame) -> None:
     """Persiste os artefatos da Parte 3 para uso no dashboard."""
-    from src.config import PROCESSED_DIR
     necessidade_diaria.to_csv(PROCESSED_DIR / "necessidade_insumos_diaria.csv", index=False)
     comparacao.to_csv(PROCESSED_DIR / "comparacao_estoque.csv", index=False)
     alertas.to_csv(PROCESSED_DIR / "alertas.csv", index=False)
@@ -69,9 +76,10 @@ def salvar_resultados(necessidade_diaria: pd.DataFrame,
 
 if __name__ == "__main__":
     inicializar_estoque()  
-
+    simular_vendas_recentes(7)
     print("Gerando previsão dos próximos 7 dias...")
-    previsao = prever_proximos_dias(7)
+    horizonte = int(os.environ.get("HORIZONTE_PREVISAO", HORIZONTE_PREVISAO))
+    previsao = prever_proximos_dias(horizonte)
 
     print("\nConvertendo previsão em necessidade de insumos...")
     necessidade_diaria = previsao_para_insumos(previsao)
@@ -95,6 +103,17 @@ if __name__ == "__main__":
     print("\n=== Resumo executivo ===")
     for k, v in resumo_alertas(alertas).items():
         print(f"  {k}: {v}")
+
+    print("\n=== Análise de desperdício ===")
+    kpis_desp = taxa_desperdicio()
+    for k, v in kpis_desp.items():
+        print(f"  {k}: {v}")
+
+    perdas_por_motivo().to_csv(PROCESSED_DIR / "desperdicio_por_motivo.csv", index=False)
+    perdas_por_insumo().to_csv(PROCESSED_DIR / "desperdicio_por_insumo.csv", index=False)
+    perdas_por_dia().to_csv(PROCESSED_DIR / "desperdicio_por_dia.csv", index=False)
+    balanco_insumos().to_csv(PROCESSED_DIR / "balanco_insumos.csv", index=False)
+    consumo_teorico_vs_real().to_csv(PROCESSED_DIR / "consumo_teorico_vs_real.csv", index=False)
 
     salvar_resultados(necessidade_diaria, comparacao, alertas)
     print("\n[OK] Artefatos salvos em data/processed/")
