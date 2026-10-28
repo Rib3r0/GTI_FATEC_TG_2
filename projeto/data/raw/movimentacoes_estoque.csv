@@ -178,3 +178,7 @@ id,data,tipo,insumo,quantidade,custo_unitario,origem,observacao
 177,2026-10-07 00:00:00.000000,SAIDA_VENDA,cebola,-0.5,0.0,venda:feijoada,
 178,2026-10-07 00:00:00.000000,ENTRADA,coca-cola,100.0,0.0,Coca-cola,
 179,2026-10-07 21:59:44.711516,PERDA,coca-cola,-3.0,0.0,sobra,
+180,2026-10-14 00:00:00.000000,SAIDA_VENDA,feijao,-0.75,0.0,venda:feijoada,
+181,2026-10-14 00:00:00.000000,SAIDA_VENDA,carne_bovina,-0.8999999999999999,0.0,venda:feijoada,
+182,2026-10-14 00:00:00.000000,SAIDA_VENDA,arroz,-0.4499999999999999,0.0,venda:feijoada,
+183,2026-10-14 00:00:00.000000,SAIDA_VENDA,cebola,-0.15000000000000002,0.0,venda:feijoada,

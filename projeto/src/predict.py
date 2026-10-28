@@ -4,7 +4,7 @@ os.environ.setdefault("LOKY_MAX_CPU_COUNT", str(os.cpu_count() or 4))
 import joblib
 import numpy as np
 import pandas as pd
-from datetime import timedelta
+from datetime import date, timedelta
 from src.config import MODELS_DIR
 from src.data_loader import carregar_vendas
 from src.data_generator import feriados_no_intervalo
@@ -69,11 +69,41 @@ def _predizer_ensemble(pacote, X: pd.DataFrame) -> np.ndarray:
     return sum(pesos[k] * preds[k] for k in preds)
 
 
-def prever_proximos_dias(n_dias: int = 7) -> pd.DataFrame:
+def _resolver_inicio(data_inicio_previsao=None) -> date:
+    """Data em que a previsão começa.
+
+    Prioridade: argumento > variável de ambiente DATA_INICIO_PREVISAO
+    (definida pelo app ao rodar o pipeline) > hoje.
+    """
+    if data_inicio_previsao is None:
+        data_inicio_previsao = os.environ.get("DATA_INICIO_PREVISAO") or date.today()
+    return pd.Timestamp(data_inicio_previsao).date()
+
+
+def prever_proximos_dias(n_dias: int = 7, data_inicio_previsao=None) -> pd.DataFrame:
+    """Prevê `n_dias` a partir de `data_inicio_previsao` (padrão: hoje).
+
+    O modelo só enxerga vendas anteriores à data de início. Se a última venda
+    registrada for mais antiga que o dia anterior ao início, os dias dessa
+    lacuna são estimados pelo próprio modelo (recursivamente) e não aparecem
+    na saída. Se o início cair dentro do período com vendas reais, o resultado
+    é o que o modelo teria previsto naquela data (útil para comparar com o real).
+    """
+    colunas = ["data", "prato", "previsao"]
     pacote = carregar_pacote()
     vendas = carregar_vendas()
+
+    inicio = _resolver_inicio(data_inicio_previsao)
+    fim = inicio + timedelta(days=n_dias - 1)
+
+    # referências calculadas com todo o histórico (iguais às do treino)
     data_inicio = vendas["data"].min()
     categorias = vendas["prato"].astype("category").cat.categories
+
+    # o modelo só pode usar o que veio antes da data de início
+    vendas = vendas[vendas["data"].dt.date < inicio]
+    if vendas.empty:
+        return pd.DataFrame(columns=colunas)
 
     # Temperatura média dos últimos 30 dias (proxy para o futuro)
     if "temperatura" in vendas.columns:
@@ -86,14 +116,13 @@ def prever_proximos_dias(n_dias: int = 7) -> pd.DataFrame:
     hist = {p: sub.sort_values("data")["quantidade"].tolist()
             for p, sub in vendas.groupby("prato", observed=True)}
 
-    inicio = vendas["data"].max().date() + timedelta(days=1)
-    fim = inicio + timedelta(days=n_dias - 1)
-    feriados_set = feriados_no_intervalo(inicio, fim)
+    # começa no dia seguinte à última venda; dias antes de `inicio` só alimentam o histórico
+    primeiro_dia = vendas["data"].max().date() + timedelta(days=1)
+    feriados_set = feriados_no_intervalo(primeiro_dia, fim)
 
     saida = []
-    for passo in range(n_dias):
-        dia = inicio + timedelta(days=passo)
-
+    dia = primeiro_dia
+    while dia <= fim:
         linhas = []
         for prato in hist:
             linha = _linha_features(prato, dia, hist, feriados_set,
@@ -109,12 +138,16 @@ def prever_proximos_dias(n_dias: int = 7) -> pd.DataFrame:
         preds = np.clip(np.round(_predizer_ensemble(pacote, X)), 0, None).astype(int)
         for i, p in enumerate(X["prato"]):
             hist[p].append(int(preds[i]))
-            saida.append({
-                "data": pd.Timestamp(dia),
-                "prato": p,
-                "previsao": int(preds[i]),
-            })
+            if dia >= inicio:
+                saida.append({
+                    "data": pd.Timestamp(dia),
+                    "prato": p,
+                    "previsao": int(preds[i]),
+                })
+        dia += timedelta(days=1)
 
+    if not saida:
+        return pd.DataFrame(columns=colunas)
     return pd.DataFrame(saida).sort_values(["data", "prato"]).reset_index(drop=True)
 
 
