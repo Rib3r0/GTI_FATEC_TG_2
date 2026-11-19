@@ -20,7 +20,7 @@ models/*.pkl
 *.swp
 
 # Streamlit
-.streamlit/secrets.toml
+*/.streamlit/secrets.toml
 
 # Sistema
 .DS_Store
