@@ -273,7 +273,15 @@ def resetar_estoque(dias_simulados: int = 7) -> None:
     print(f"[OK] Estoque resetado e calibrado para {dias_simulados} dias.")
 
 if __name__ == "__main__":
-    inicializar_estoque()
+    # REGERRAR_ESTOQUE=1 (botão "Regerar tudo" no app) → zera e recalibra o livro-razão
+    regerar = os.environ.get("REGERAR_ESTOQUE", "").strip().lower() in (
+        "1", "true", "sim", "yes",
+    )
+    if regerar:
+        print("REGERAR_ESTOQUE=1 → resetando estoque calibrado...")
+        resetar_estoque(dias_simulados=7)
+    else:
+        inicializar_estoque()
     print("\nSaldos atuais:")
     for k, v in saldos_atuais().items():
         print(f"  {k:15s} {v:8.2f}")

@@ -34,6 +34,7 @@ CRITÉRIOS DE REALISMO USADOS
    22. Porções por prato em quantidade crua realista.
    23. Custos de insumos em valores de referência atuais (aproximados).
 """
+import os
 import numpy as np
 import pandas as pd
 from calendar import monthrange
@@ -512,20 +513,127 @@ def gerar_cadastros() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     return pratos_df, insumos_df, pd.DataFrame(ficha)
 
 
-def salvar_dados():
+def _mesclar_cadastro_existente(
+    gerado: pd.DataFrame,
+    path,
+    chaves: list[str],
+) -> pd.DataFrame:
+    """Mantém linhas que o usuário cadastrou e que não estão no gerador base.
+
+    Assim, rodar o pipeline completo **não apaga** pratos/insumos/fichas manuais.
+    """
+    if gerado is None or gerado.empty:
+        gerado = pd.DataFrame()
+    if not path.exists():
+        out = gerado.copy()
+    else:
+        atual = pd.read_csv(path)
+        if atual.empty:
+            out = gerado.copy()
+        else:
+            for c in chaves:
+                if c in atual.columns:
+                    atual[c] = atual[c].astype(str)
+                if c in gerado.columns:
+                    gerado = gerado.copy()
+                    gerado[c] = gerado[c].astype(str)
+
+            if gerado.empty:
+                extras = atual
+            else:
+                chave_gerado = gerado[chaves].drop_duplicates()
+                merge = atual.merge(chave_gerado, on=chaves, how="left", indicator=True)
+                extras = merge[merge["_merge"] == "left_only"].drop(columns="_merge")
+
+            cols = list(gerado.columns) if not gerado.empty else list(atual.columns)
+            for c in cols:
+                if c not in extras.columns:
+                    extras[c] = pd.NA
+            extras = extras.reindex(columns=cols)
+            out = pd.concat([gerado, extras], ignore_index=True)
+
+    if "id" in out.columns and not out.empty:
+        out = out.copy()
+        out["id"] = range(1, len(out) + 1)
+    return out
+
+
+def _mesclar_vendas_manuais(vendas_geradas: pd.DataFrame, path) -> pd.DataFrame:
+    """Preserva vendas de pratos que não fazem parte do cardápio sintético base.
+
+    Vendas dos pratos do gerador (feijoada, strogonoff, ...) são regeradas.
+    Vendas de pratos cadastrados pelo usuário são mantidas.
+    """
+    if not path.exists():
+        return vendas_geradas
+    antigo = pd.read_csv(path, parse_dates=["data"])
+    if antigo.empty:
+        return vendas_geradas
+
+    pratos_base = set(PRATOS.keys())
+    manuais = antigo[~antigo["prato"].astype(str).isin(pratos_base)].copy()
+    if manuais.empty:
+        return vendas_geradas
+
+    cols = list(vendas_geradas.columns)
+    for c in cols:
+        if c not in manuais.columns:
+            if c in ("feriado", "fim_de_semana", "promocao"):
+                manuais[c] = 0
+            elif c == "temperatura":
+                manuais[c] = 22.0
+            else:
+                manuais[c] = pd.NA
+    manuais = manuais.reindex(columns=cols)
+    out = pd.concat([vendas_geradas, manuais], ignore_index=True)
+    # evita TypeError no sort (categorias / tipos mistos vindos do CSV antigo)
+    out["data"] = pd.to_datetime(out["data"], errors="coerce")
+    out["prato"] = out["prato"].astype(str)
+    return out.sort_values(["data", "prato"]).reset_index(drop=True)
+
+
+def salvar_dados(preservar_cadastros: bool = True):
+    """Gera dados sintéticos e grava em data/raw/.
+
+    Por padrão **preserva** pratos, insumos e itens de ficha que o usuário
+    cadastrou fora do cardápio base, e também vendas de pratos manuais.
+    Passe preservar_cadastros=False só se quiser resetar tudo ao cenário de exemplo.
+    """
     vendas = gerar_vendas()
     pratos, insumos, ficha = gerar_cadastros()
+
+    if preservar_cadastros:
+        pratos = _mesclar_cadastro_existente(pratos, RAW_DIR / "pratos.csv", ["nome"])
+        insumos = _mesclar_cadastro_existente(
+            insumos, RAW_DIR / "insumos.csv", ["nome"]
+        )
+        ficha = _mesclar_cadastro_existente(
+            ficha, RAW_DIR / "ficha_tecnica.csv", ["prato", "insumo"]
+        )
+        vendas = _mesclar_vendas_manuais(vendas, RAW_DIR / "vendas.csv")
 
     vendas.to_csv(RAW_DIR / "vendas.csv", index=False)
     pratos.to_csv(RAW_DIR / "pratos.csv", index=False)
     insumos.to_csv(RAW_DIR / "insumos.csv", index=False)
     ficha.to_csv(RAW_DIR / "ficha_tecnica.csv", index=False)
 
+    n_extra_p = len(pratos) - len(PRATOS)
+    n_extra_i = len(insumos) - len(INSUMOS)
     print(f"[OK] vendas: {len(vendas)} linhas | período: {vendas['data'].min()} a {vendas['data'].max()}")
-    print(f"[OK] pratos: {len(pratos)} linhas")
-    print(f"[OK] insumos: {len(insumos)} linhas")
+    print(
+        f"[OK] pratos: {len(pratos)} linhas"
+        + (f" ({n_extra_p} cadastrado(s) pelo usuário)" if n_extra_p > 0 else "")
+    )
+    print(
+        f"[OK] insumos: {len(insumos)} linhas"
+        + (f" ({n_extra_i} cadastrado(s) pelo usuário)" if n_extra_i > 0 else "")
+    )
     print(f"[OK] ficha técnica: {len(ficha)} linhas")
 
 
 if __name__ == "__main__":
-    salvar_dados()
+    # REGERRAR_CADASTROS=1 força sobrescrever tudo (cenário de exemplo puro)
+    forcar = os.environ.get("REGERAR_CADASTROS", "").strip().lower() in (
+        "1", "true", "sim", "yes",
+    )
+    salvar_dados(preservar_cadastros=not forcar)

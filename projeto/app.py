@@ -326,9 +326,18 @@ def _flash(tipo: str, msg: str):
     st.session_state.setdefault("flash", []).append((tipo, msg))
 
 
-def _env_utf8(horizonte: int | None = None, inicio: date | None = None) -> dict:
+def _env_utf8(
+    horizonte: int | None = None,
+    inicio: date | None = None,
+    *,
+    regerar_tudo: bool = False,
+) -> dict:
     """Ambiente dos subprocessos. Sem argumentos, usa o horizonte e a data de
-    início escolhidos na barra lateral, para o pipeline ficar coerente com a tela."""
+    início escolhidos na barra lateral, para o pipeline ficar coerente com a tela.
+
+    regerar_tudo=True define REGERRAR_CADASTROS e REGERRAR_ESTOQUE para o
+    botão "Regerar tudo" (volta ao cenário de exemplo).
+    """
     env = os.environ.copy()
     env["PYTHONIOENCODING"] = "utf-8"
     env["PYTHONUTF8"] = "1"
@@ -338,6 +347,13 @@ def _env_utf8(horizonte: int | None = None, inicio: date | None = None) -> dict:
     inicio = inicio if inicio is not None else st.session_state.get("inicio_previsao")
     if inicio is not None:
         env["DATA_INICIO_PREVISAO"] = pd.Timestamp(inicio).date().isoformat()
+    if regerar_tudo:
+        env["REGERAR_CADASTROS"] = "1"
+        env["REGERAR_ESTOQUE"] = "1"
+    else:
+        # Garante que um reset anterior na shell não vaze para o pipeline normal
+        env.pop("REGERAR_CADASTROS", None)
+        env.pop("REGERAR_ESTOQUE", None)
     return env
 
 
@@ -368,10 +384,13 @@ def _reprocessar(horizonte: int | None = None, inicio: date | None = None) -> bo
     return ok
 
 
-def _executar_pipeline(modulos: list[str], rotulo: str):
+def _executar_pipeline(modulos: list[str], rotulo: str, *, regerar_tudo: bool = False):
     """Roda uma sequência de módulos mostrando progresso; para o app se algo falhar."""
-    with st.spinner("Gerando dados, treinando e calculando alertas..."):
-        ok, erro = _rodar_modulos(modulos, env=_env_utf8())
+    msg = ("Resetando cadastros, estoque, treinando e recalculando..."
+           if regerar_tudo else
+           "Gerando dados, treinando e calculando alertas...")
+    with st.spinner(msg):
+        ok, erro = _rodar_modulos(modulos, env=_env_utf8(regerar_tudo=regerar_tudo))
     _limpar_cache()
     if not ok:
         st.sidebar.error(erro)
@@ -535,23 +554,26 @@ st.sidebar.subheader("Dados e modelo")
 
 if st.sidebar.button(
     "🔄 Rodar pipeline completo", use_container_width=True,
-    help="Gera os dados, treina o modelo e recalcula os alertas.",
+    help="Retreina e recalcula alertas. Mantém pratos/insumos/fichas que você cadastrou.",
 ):
     _executar_pipeline(
         ["src.data_generator", "src.train", "src.business"],
         "Pipeline",
+        regerar_tudo=False,
     )
 
 with st.sidebar.expander("⚙️ Avançado"):
     st.caption(
-        "Igual ao pipeline completo, mas também refaz o estoque (`src.inventory`). "
-        "Pode sobrescrever dados atuais."
+        "**♻️ Regerar tudo** volta ao cenário de exemplo: apaga pratos/insumos/fichas "
+        "cadastrados por você, regera vendas sintéticas, zera o estoque e recalcula alertas. "
+        "Use só quando quiser começar do zero."
     )
     confirma_regerar = st.checkbox("Confirmo que quero regerar tudo", key="confirma_regerar")
     if st.button("♻️ Regerar tudo", disabled=not confirma_regerar, use_container_width=True):
         _executar_pipeline(
             ["src.data_generator", "src.train", "src.inventory", "src.business"],
-            "Regeneração completa",
+            "Regeneração completa (reset total)",
+            regerar_tudo=True,
         )
 
 
@@ -771,10 +793,20 @@ with aba_registrar:
                         if baixar:
                             registrar_saida_por_venda(prato_v, int(qtd_v), data_v)
                         st.cache_data.clear()
-                        st.session_state["msg_venda"] = (
-                            "ok",
-                            f"{int(qtd_v)}× {nome_bonito(prato_v)} registrado em {data_v:%d/%m/%Y}."
-                        )
+                        # Recalcula alertas/necessidade (estoque mudou com a baixa)
+                        ok_recalc = _reprocessar()
+                        if ok_recalc:
+                            st.session_state["msg_venda"] = (
+                                "ok",
+                                f"{int(qtd_v)}× {nome_bonito(prato_v)} registrado em {data_v:%d/%m/%Y}. "
+                                "Alertas atualizados.",
+                            )
+                        else:
+                            st.session_state["msg_venda"] = (
+                                "ok",
+                                f"{int(qtd_v)}× {nome_bonito(prato_v)} registrado em {data_v:%d/%m/%Y}. "
+                                "Atenção: o recálculo dos alertas falhou — use 🔄 na barra lateral.",
+                            )
                         st.rerun()
                     except Exception as e:
                         st.session_state["msg_venda"] = ("erro", str(e))
@@ -1167,8 +1199,12 @@ with aba_vendas:
             )
             if st.button("Confirmar remoção", key="btn_rm_venda"):
                 remover_venda(pra_r, data_r)
-                st.success("Venda removida.")
                 st.cache_data.clear()
+                if _reprocessar():
+                    st.success("Venda removida. Alertas atualizados.")
+                else:
+                    st.success("Venda removida.")
+                    st.warning("Recálculo dos alertas falhou — use 🔄 na barra lateral.")
                 st.rerun()
 
 # ---- Modelo
@@ -1205,6 +1241,13 @@ with aba_prev:
         f"Previsão de **{INICIO_PREV:%d/%m/%Y}** a **{FIM_PREV:%d/%m/%Y}**. "
         "Use **Previsão** na barra lateral para alterar o início e o número de dias."
     )
+    st.info(
+        "**Pratos na previsão:** o modelo só inclui pratos com cerca de **30 dias de vendas** "
+        "registradas **antes** da data de início da previsão (precisa de histórico para lags e médias). "
+        "Prato novo ou com poucas vendas **não aparece** aqui e a necessidade de insumos da ficha "
+        "dele fica zerada no Resumo até haver histórico suficiente. "
+        "Depois de acumular vendas, rode o pipeline para retreinar quando quiser."
+    )
 
     _ultima_venda = vendas["data"].max().date()
     _lacuna = (INICIO_PREV - _ultima_venda).days - 1
@@ -1229,6 +1272,29 @@ with aba_prev:
     try:
         prev = prever_proximos_dias(H, INICIO_PREV)
         prev_f = prev[prev["prato"].isin(pratos_sel)]
+
+        # Avisa pratos com venda mas ainda fora da previsão (ex.: < ~30 dias)
+        _vendas_antes = vendas[vendas["data"].dt.date < INICIO_PREV]
+        if not _vendas_antes.empty:
+            _dias_por_prato = (
+                _vendas_antes.groupby("prato")["data"]
+                .nunique()
+                .rename("dias")
+            )
+            _previstos = set(prev["prato"].unique()) if not prev.empty else set()
+            _fora = [
+                (p, int(d))
+                for p, d in _dias_por_prato.items()
+                if p in pratos_sel and p not in _previstos
+            ]
+            if _fora:
+                _lista = ", ".join(
+                    f"**{nome_bonito(p)}** ({d} dia(s) com venda)" for p, d in sorted(_fora, key=lambda x: x[0])
+                )
+                st.warning(
+                    "Estes pratos têm vendas no histórico, mas **ainda não entram na previsão** "
+                    f"(histórico curto; o modelo pede cerca de 30 dias): {_lista}."
+                )
 
         if prev.empty:
             st.warning("Histórico insuficiente antes da data de início escolhida "
@@ -1656,8 +1722,21 @@ def _tabela_editavel(base, nome, config, adicionar, atualizar, remover, chave="n
                 st.error(e)  # mantém o que a pessoa digitou
         elif aplicadas or erros:
             st.cache_data.clear()
+            # Cadastro mudou (insumo/prato/ficha) → recalcula necessidade e alertas
+            ok_recalc = True
             if aplicadas:
-                _flash("success", f"{aplicadas} alteração(ões) salva(s).")
+                ok_recalc = _reprocessar()
+                if ok_recalc:
+                    _flash(
+                        "success",
+                        f"{aplicadas} alteração(ões) salva(s). Alertas e necessidade atualizados.",
+                    )
+                else:
+                    _flash(
+                        "success",
+                        f"{aplicadas} alteração(ões) salva(s). "
+                        "Recálculo dos alertas falhou — use 🔄 Rodar pipeline na barra lateral.",
+                    )
             for e in erros[:5]:
                 _flash("error", e)
             st.session_state[vkey] = versao + 1
@@ -1952,6 +2031,7 @@ def _obter_chave_groq() -> str | None:
         pass
     return os.environ.get("GROQ_API_KEY") or os.environ.get("GROQ_API_TOKEN")
 
+
 with aba_chat:
     st.subheader("Assistente de análise")
     st.caption(
@@ -2016,7 +2096,6 @@ with aba_chat:
             with st.chat_message(msg["role"]):
                 st.markdown(msg["content"])
 
-        # força o scroll para o final da área de chat
         st.markdown(
             """
             <script>
@@ -2063,7 +2142,6 @@ with aba_chat:
         "Digite sua pergunta sobre estoque, vendas, desperdício..."
     )
 
-    # prioriza botão de sugestão; senão usa o que foi digitado
     pergunta = st.session_state.pop("_pergunta_pendente", None) or pergunta_digitada
 
     if pergunta:
@@ -2125,4 +2203,4 @@ with aba_chat:
         st.session_state.chat_messages.append(
             {"role": "assistant", "content": resposta}
         )
-        st.rerun()  # redesenha histórico + mantém o input
+        st.rerun()
